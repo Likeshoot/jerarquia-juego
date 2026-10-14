@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Math Karts - Profesor</title>
+  <style>
+    :root { --green-neon:#49ffb8; --red:#ff315f; --blue:#28a9ff; --green:#28d97b; --yellow:#ffd43b; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100vh; overflow:hidden; color:#fff; font-family:Inter,ui-rounded,system-ui,sans-serif; background:radial-gradient(circle at 50% -10%,#2c2162 0,#11142e 38%,#050711 78%); }
+    body::before { content:""; position:fixed; inset:0; opacity:.3; pointer-events:none; background-image:radial-gradient(#fff 1px,transparent 1px),radial-gradient(#75bfff 1px,transparent 1px); background-position:0 0,32px 38px; background-size:72px 72px; animation:stars 12s linear infinite; }
+    @keyframes stars { to { background-position:-72px 72px,-40px 110px; } }
+    @keyframes road { to { background-position:-100px 0; } }
+    @keyframes pulse { 50% { transform:scale(1.03); filter:brightness(1.18); } }
+    @keyframes wheel { to { transform:rotate(360deg); } }
+    .brand { position:fixed; z-index:30; top:16px; left:24px; font-weight:1000; font-style:italic; letter-spacing:-.04em; font-size:22px; }
+    .brand span { color:var(--green-neon); text-shadow:0 0 18px var(--green-neon); }
+    #connection-status { position:fixed; z-index:30; top:18px; right:22px; padding:9px 15px; border:1px solid rgba(255,255,255,.12); border-radius:999px; background:rgba(5,7,17,.72); backdrop-filter:blur(12px); font-size:13px; font-weight:800; }
+    #lobby { position:relative; z-index:5; min-height:100vh; display:grid; grid-template-columns:minmax(420px,680px) minmax(300px,480px); place-content:center; gap:24px; padding:70px 4vw 30px; }
+    .card { border:1px solid rgba(255,255,255,.16); border-radius:32px; background:linear-gradient(145deg,rgba(34,35,84,.9),rgba(11,13,35,.84)); box-shadow:0 35px 90px #02030b,inset 0 1px rgba(255,255,255,.15); backdrop-filter:blur(18px); }
+    .hero { padding:48px 42px; text-align:center; }
+    .eyebrow { color:var(--green-neon); font-size:12px; font-weight:900; letter-spacing:.28em; text-transform:uppercase; }
+    h1 { margin:10px 0 8px; font-size:clamp(55px,7vw,92px); line-height:.9; font-weight:1000; font-style:italic; letter-spacing:-.075em; text-shadow:0 7px 0 #5133ae,0 0 45px rgba(113,88,255,.55); }
+    h1 span { color:var(--green-neon); text-shadow:0 7px 0 #087b58,0 0 35px var(--green-neon); }
+    #message { margin:20px auto 28px; max-width:500px; color:#bdc3e4; font-size:17px; }
+    .btn-start { border:0; padding:18px 34px; border-radius:18px; color:#07150f; background:linear-gradient(135deg,#b0ffe0,var(--green-neon) 55%,#13d78d); box-shadow:0 9px 0 #087e58,0 18px 45px rgba(73,255,184,.35); font-size:19px; font-weight:1000; cursor:pointer; animation:pulse 2s infinite; }
+    .btn-start:active { transform:translateY(5px); box-shadow:0 4px 0 #087e58; }
+    .roster { padding:28px; overflow:hidden; }
+    .roster h2 { margin:0 0 18px; font-size:21px; }
+    .roster-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .roster-team { min-height:105px; padding:14px; border:1px solid rgba(255,255,255,.1); border-left:5px solid var(--team-color); border-radius:16px; background:rgba(255,255,255,.045); }
+    .roster-title { display:flex; justify-content:space-between; font-size:12px; font-weight:1000; }
+    .player-list { margin-top:8px; color:#cbd0eb; font-size:12px; line-height:1.55; }
+    .empty { opacity:.5; font-style:italic; }
+    .btn-reset { position:fixed; z-index:35; left:22px; bottom:20px; padding:11px 17px; border:1px solid rgba(255,255,255,.18); border-radius:13px; color:#fff; background:rgba(12,14,35,.86); font-size:13px; font-weight:900; cursor:pointer; }
+    #race-screen { position:relative; z-index:5; display:none; min-height:100vh; padding:60px 2.5vw 2vh; }
+    .scoreboard { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; height:12vh; min-height:75px; }
+    .score { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 15px; border:1px solid rgba(255,255,255,.12); border-top:4px solid var(--team-color); border-radius:16px; background:rgba(16,18,46,.82); }
+    .score-name { font-weight:1000; font-style:italic; font-size:clamp(14px,1.6vw,25px); }
+    .score-members { max-width:13vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#aeb4d7; font-size:10px; }
+    .score-value { color:var(--team-color); font-size:clamp(23px,3vw,42px); font-weight:1000; text-shadow:0 0 20px var(--team-color); }
+    #track-container { height:80vh; min-height:470px; overflow:hidden; position:relative; border:2px solid #4a4775; border-radius:25px; background:#181926; box-shadow:0 35px 80px #02030a,inset 0 0 60px rgba(0,0,0,.65); }
+    #track-container::before,#track-container::after { content:""; position:absolute; z-index:5; left:0; right:0; height:10px; background:repeating-linear-gradient(90deg,#fff 0 24px,#ea174d 24px 48px); }
+    #track-container::before { top:0; } #track-container::after { bottom:0; }
+    .track { height:25%; position:relative; display:flex; align-items:center; border-bottom:2px dashed rgba(255,255,255,.3); background-color:#20212b; background-image:repeating-linear-gradient(100deg,transparent 0 95px,rgba(255,255,255,.028) 96px 100px); animation:road 1.2s linear infinite; }
+    .track:last-child { border-bottom:0; }
+    .lane-label { position:absolute; left:18px; top:12px; color:rgba(255,255,255,.13); font-size:clamp(25px,4vw,55px); font-weight:1000; font-style:italic; }
+    .kart { width:clamp(70px,8vw,120px); height:clamp(42px,5.5vw,78px); position:absolute; left:0%; z-index:10; transition:left .42s cubic-bezier(.22,1,.36,1); filter:drop-shadow(0 13px 8px rgba(0,0,0,.6)); }
+    .kart-body { position:absolute; inset:12% 5% 18%; border-radius:45% 55% 25% 25%/55% 55% 28% 28%; background:linear-gradient(135deg,#fff8,var(--team-color) 42%,#1118); box-shadow:inset 0 6px rgba(255,255,255,.28),0 0 25px var(--team-color); }
+    .cockpit { position:absolute; z-index:2; top:0; left:34%; width:37%; height:43%; border:3px solid #a9b4d6; border-radius:50% 50% 20% 20%; background:linear-gradient(135deg,#d5f4ff,#25365f 58%); }
+    .number { position:absolute; z-index:3; inset:31% 0 auto; text-align:center; font-size:clamp(12px,1.5vw,21px); font-weight:1000; }
+    .wheel { position:absolute; bottom:2%; width:22%; aspect-ratio:1; border:4px solid #07070b; border-radius:50%; background:radial-gradient(circle,#bfc8df 0 18%,#33394e 20% 42%,#090a0f 44%); animation:wheel .35s linear infinite; }
+    .wheel.left { left:8%; } .wheel.right { right:8%; }
+    .flame { position:absolute; left:-22%; top:35%; width:34%; height:28%; background:linear-gradient(90deg,transparent,#ff5635,#ffe85b,white); clip-path:polygon(0 50%,45% 0,100% 35%,100% 65%,45% 100%); }
+    .meta { position:absolute; z-index:4; right:5%; height:100%; width:38px; background-color:white; background-image:conic-gradient(#111 25%,#fff 0 50%,#111 0 75%,#fff 0); background-size:20px 20px; box-shadow:0 0 20px #fff8; }
+    #winner-overlay { position:fixed; z-index:100; inset:0; display:none; place-items:center; background:rgba(3,4,13,.8); backdrop-filter:blur(16px); }
+    .winner-card { width:min(620px,90vw); padding:45px; border:2px solid var(--green-neon); border-radius:34px; text-align:center; background:radial-gradient(circle at top,#34306d,#101225 65%); }
+    .trophy { font-size:84px; } #winner-name { margin:8px 0 12px; font-size:clamp(38px,7vw,74px); font-weight:1000; font-style:italic; }
+    #winner-players { margin-bottom:28px; color:#cbd0eb; }
+    @media (max-width:900px) { #lobby { grid-template-columns:1fr; overflow:auto; height:100vh; place-content:start; } .hero { margin-top:20px; } }
+  </style>
+</head>
+<body>
+  <div class="brand">MATH <span>KARTS</span></div>
+  <div id="connection-status">Conectando…</div>
+  <button id="reset-button" class="btn-reset" type="button">↻ REINICIAR PARTIDA</button>
+
+  <div id="lobby">
+    <section class="card hero">
+      <div class="eyebrow">Desafío matemático en vivo</div>
+      <h1>MATH <span>KARTS</span></h1>
+      <p id="message">Hasta cuatro equipos. Cada respuesta correcta acelera hacia la victoria.</p>
+      <button id="start-button" class="btn-start" type="button">🏁 INICIAR CARRERA</button>
+    </section>
+    <aside class="card roster">
+      <h2>👥 Alumnos conectados</h2>
+      <div id="roster-grid" class="roster-grid"></div>
+    </aside>
+  </div>
+
+  <main id="race-screen">
+    <div id="scoreboard" class="scoreboard"></div>
+    <div id="track-container"></div>
+  </main>
+
+  <div id="winner-overlay">
+    <div class="winner-card">
+      <div class="trophy">🏆</div>
+      <div class="eyebrow">Campeones de Math Karts</div>
+      <div id="winner-name"></div>
+      <div id="winner-players"></div>
+      <button id="new-race-button" class="btn-start" type="button">NUEVA CARRERA</button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const teams = [
+      { id:"red", name:"ROJO", subtitle:"Turbo Escarlata", color:"#ff315f" },
+      { id:"blue", name:"AZUL", subtitle:"Rayo Cian", color:"#28a9ff" },
+      { id:"green", name:"VERDE", subtitle:"Nitro Esmeralda", color:"#28d97b" },
+      { id:"yellow", name:"AMARILLO", subtitle:"Voltio Dorado", color:"#ffd43b" }
+    ];
+    const status = document.getElementById("connection-status");
+    const lobby = document.getElementById("lobby");
+    const raceScreen = document.getElementById("race-screen");
+    const message = document.getElementById("message");
+    const startButton = document.getElementById("start-button");
+    const resetButton = document.getElementById("reset-button");
+    const winnerOverlay = document.getElementById("winner-overlay");
+    let announcedWinner = null;
+    let latestState = null;
+
+    document.getElementById("scoreboard").innerHTML = teams.map(team => `
+      <div class="score" style="--team-color:${team.color}">
+        <div><div class="score-name">${team.name}</div><div id="score-members-${team.id}" class="score-members">Sin alumnos</div></div>
+        <div id="score-${team.id}" class="score-value">0%</div>
+      </div>`).join("");
+
+    document.getElementById("track-container").innerHTML = teams.map((team,index) => `
+      <div class="track">
+        <div class="lane-label">${team.name}</div>
+        <div id="kart-${team.id}" class="kart" style="--team-color:${team.color}">
+          <div class="flame"></div><div class="wheel left"></div><div class="wheel right"></div>
+          <div class="kart-body"></div><div class="cockpit"></div><div class="number">0${index + 1}</div>
+        </div>
+        <div class="meta"></div>
+      </div>`).join("");
+
+    socket.on("connect", () => {
+      status.textContent = "● Conectado";
+      status.style.color = "#49ffb8";
+    });
+    socket.on("disconnect", () => {
+      status.textContent = "● Reconectando…";
+      status.style.color = "#ff5c8a";
+    });
+    socket.on("connect_error", error => {
+      status.textContent = "Error: " + error.message;
+      status.style.color = "#ff5c8a";
+    });
+
+    async function sendCommand(path) {
+      const response = await fetch(window.location.origin + path, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}"
+      });
+      const result = await response.json();
+      if (!response.ok || !result.ok) throw new Error(result.message || "Error del servidor");
+      return result;
+    }
+
+    async function startRace() {
+      announcedWinner = null;
+      winnerOverlay.style.display = "none";
+      startButton.disabled = true;
+      try {
+        await sendCommand("/api/start");
+      } catch (error) {
+        alert("No se pudo iniciar: " + error.message);
+      } finally {
+        startButton.disabled = false;
+      }
+    }
+
+    async function resetRace() {
+      if (!confirm("¿Reiniciar la partida y regresar los cuatro autos a 0%?")) return;
+      resetButton.disabled = true;
+      try {
+        await sendCommand("/api/reset");
+        announcedWinner = null;
+        winnerOverlay.style.display = "none";
+      } catch (error) {
+        alert("No se pudo reiniciar: " + error.message);
+      } finally {
+        resetButton.disabled = false;
+      }
+    }
+
+    startButton.addEventListener("click", startRace);
+    resetButton.addEventListener("click", resetRace);
+    document.getElementById("new-race-button").addEventListener("click", startRace);
+
+    socket.on("game-state", state => {
+      latestState = state;
+      teams.forEach(team => {
+        const data = state[team.id];
+        const names = data.players.map(player => player.name);
+        document.getElementById(`kart-${team.id}`).style.left = data.distance + "%";
+        document.getElementById(`score-${team.id}`).textContent = data.distance + "%";
+        document.getElementById(`score-members-${team.id}`).textContent = names.join(", ") || "Sin alumnos";
+      });
+
+      document.getElementById("roster-grid").innerHTML = teams.map(team => {
+        const names = state[team.id].players.map(player => player.name);
+        return `<div class="roster-team" style="--team-color:${team.color}">
+          <div class="roster-title"><span>EQUIPO ${team.name}</span><span>${names.length}</span></div>
+          <div class="player-list ${names.length ? "" : "empty"}">${names.length ? names.join("<br>") : "Esperando alumnos…"}</div>
+        </div>`;
+      }).join("");
+
+      if (state.started || state.winner) {
+        lobby.style.display = "none";
+        raceScreen.style.display = "block";
+      } else {
+        lobby.style.display = "grid";
+        raceScreen.style.display = "none";
+      }
+
+      if (state.winner && announcedWinner !== state.winner) {
+        announcedWinner = state.winner;
+        const team = teams.find(item => item.id === state.winner);
+        document.getElementById("winner-name").textContent = "EQUIPO " + team.name;
+        document.getElementById("winner-name").style.color = team.color;
+        document.getElementById("winner-players").textContent =
+          state[state.winner].players.map(player => player.name).join(" · ");
+        setTimeout(() => winnerOverlay.style.display = "grid", 400);
+      }
+    });
+  </script>
+</body>
+</html>

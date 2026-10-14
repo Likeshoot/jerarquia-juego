@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Math Karts - Alumno</title>
+  <style>
+    :root { --neon:#49ffb8; }
+    * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    body { min-height:100dvh; margin:0; padding:18px; color:#fff; text-align:center; font-family:Inter,ui-rounded,system-ui,sans-serif; background:radial-gradient(circle at 50% -10%,#383078,#11142e 45%,#060817); }
+    body::before { content:""; position:fixed; inset:0; z-index:-1; opacity:.25; background-image:radial-gradient(#fff 1px,transparent 1px); background-size:38px 38px; }
+    body.flash-good { background:radial-gradient(circle,#1a9c69,#071d18 68%); }
+    body.flash-bad { background:radial-gradient(circle,#a5163d,#240711 68%); animation:shake .22s linear; }
+    @keyframes shake { 25% { transform:translateX(-7px); } 75% { transform:translateX(7px); } }
+    @keyframes pulse { 50% { transform:scale(1.05); opacity:.7; } }
+    .app { width:min(520px,100%); margin:auto; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:22px; }
+    .brand { font-weight:1000; font-style:italic; letter-spacing:-.05em; font-size:22px; }
+    .brand span { color:var(--neon); text-shadow:0 0 16px var(--neon); }
+    #connection-status { padding:7px 11px; border:1px solid #ffffff22; border-radius:99px; background:#06081799; font-size:11px; font-weight:900; }
+    .panel { padding:26px 20px; border:1px solid #ffffff26; border-radius:30px; background:linear-gradient(145deg,#26275ce8,#0b0d23e8); box-shadow:0 28px 70px #0008,inset 0 1px #ffffff24; }
+    .eyebrow { color:var(--neon); font-size:11px; font-weight:1000; letter-spacing:.22em; text-transform:uppercase; }
+    h2 { margin:8px 0 22px; font-size:clamp(29px,8vw,42px); line-height:1; font-style:italic; letter-spacing:-.045em; }
+    #student-name { width:100%; height:62px; margin-bottom:16px; padding:0 18px; border:2px solid #ffffff20; border-radius:17px; outline:none; color:#fff; background:#0c0f2c; font-size:20px; font-weight:800; text-align:center; }
+    #student-name:focus { border-color:var(--neon); box-shadow:0 0 20px #49ffb833; }
+    .team-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .btn-team { min-height:105px; border:0; border-radius:20px; color:#fff; padding:16px 10px; background:linear-gradient(145deg,#fff5,var(--team-color) 38%,#05081699),var(--team-color); box-shadow:inset 0 2px #ffffff44,0 9px 22px #0006; cursor:pointer; }
+    .btn-team:active { transform:scale(.95); }
+    .car { display:block; font-size:38px; filter:drop-shadow(0 6px 5px #0008); }
+    .team-title { display:block; font-size:17px; font-weight:1000; font-style:italic; }
+    .team-subtitle { font-size:9px; font-weight:900; letter-spacing:.08em; opacity:.8; }
+    #registration-error { min-height:22px; margin-top:13px; color:#ff7c9b; font-size:13px; font-weight:800; }
+    #game-area,#waiting-message { display:none; }
+    #waiting-message { padding-top:12vh; }
+    .traffic-light { width:100px; margin:0 auto 24px; padding:13px; display:flex; gap:7px; border-radius:16px; background:#090a13; }
+    .light { width:20px; aspect-ratio:1; border-radius:50%; background:#363641; }
+    .light:first-child { background:#ff315f; box-shadow:0 0 15px #ff315f; animation:pulse 1s infinite; }
+    .player-chip { display:inline-block; margin:5px 0 18px; padding:8px 13px; border:1px solid #ffffff22; border-radius:99px; background:#ffffff0c; font-size:13px; font-weight:900; }
+    .change-team { display:block; margin:18px auto 0; border:0; color:#aeb5dc; background:transparent; text-decoration:underline; cursor:pointer; }
+    .game-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; }
+    #team-label { margin:0; font-size:13px; font-weight:1000; color:var(--team-color,var(--neon)); }
+    .equation-card { padding:10px; border-radius:28px; background:linear-gradient(135deg,var(--team-color,var(--neon)),#6a58ff); box-shadow:0 18px 55px #4337d152; }
+    .equation-card::before { content:"RESUELVE PARA X"; display:block; padding:8px; color:#07110e; font-size:10px; font-weight:1000; letter-spacing:.22em; }
+    .equation { padding:32px 12px; border-radius:20px; background:linear-gradient(145deg,#222550,#0c0e25); font-size:clamp(45px,15vw,68px); font-weight:1000; }
+    #answers { display:grid; gap:12px; margin-top:18px; }
+    .btn-answer { width:100%; min-height:72px; border:1px solid #ffffff21; border-radius:18px; color:#fff; background:linear-gradient(145deg,#343862,#1b1e3f); box-shadow:0 8px 0 #0c0e22; font-size:24px; font-weight:1000; cursor:pointer; }
+    .btn-answer:active { transform:translateY(6px); box-shadow:0 2px 0 #0c0e22; }
+    .btn-answer:disabled { opacity:.5; }
+    #server-message { min-height:24px; margin-top:18px; color:#ffd166; font-size:13px; font-weight:800; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar"><div class="brand">MATH <span>KARTS</span></div><div id="connection-status">Conectando…</div></div>
+
+    <div id="team-selection" class="panel">
+      <div class="eyebrow">Registro de piloto</div>
+      <h2>ESCRIBE TU NOMBRE<br>Y ELIGE EQUIPO</h2>
+      <input id="student-name" maxlength="24" autocomplete="name" placeholder="Tu nombre" />
+      <div id="team-grid" class="team-grid"></div>
+      <div id="registration-error"></div>
+    </div>
+
+    <div id="waiting-message" class="panel">
+      <div class="traffic-light"><span class="light"></span><span class="light"></span><span class="light"></span></div>
+      <div class="eyebrow">Motores preparados</div>
+      <h2>ESPERANDO<br>LA SALIDA…</h2>
+      <div id="waiting-player" class="player-chip"></div>
+      <p>El profesor iniciará la carrera.</p>
+      <button class="change-team" onclick="changeRegistration()">Cambiar nombre o equipo</button>
+    </div>
+
+    <div id="game-area">
+      <div class="game-header"><h3 id="team-label"></h3><div id="game-player" class="player-chip"></div></div>
+      <div class="equation-card"><div class="equation" id="equation-display">...</div></div>
+      <div id="answers">
+        <button class="btn-answer" id="btn-0" onclick="checkAnswer(0)"></button>
+        <button class="btn-answer" id="btn-1" onclick="checkAnswer(1)"></button>
+        <button class="btn-answer" id="btn-2" onclick="checkAnswer(2)"></button>
+      </div>
+      <div id="server-message">Responde correctamente para acelerar</div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    // Primero instalamos todos los receptores y después abrimos la conexión.
+    const socket = io({ autoConnect: false });
+    const teams = [
+      { id:"red", name:"ROJO", subtitle:"Turbo Escarlata", color:"#ff315f" },
+      { id:"blue", name:"AZUL", subtitle:"Rayo Cian", color:"#28a9ff" },
+      { id:"green", name:"VERDE", subtitle:"Nitro Esmeralda", color:"#28d97b" },
+      { id:"yellow", name:"AMARILLO", subtitle:"Voltio Dorado", color:"#ffd43b" }
+    ];
+    let myTeam = sessionStorage.getItem("math-karts-team") || "";
+    let myName = sessionStorage.getItem("math-karts-name") || "";
+    const clientId =
+      localStorage.getItem("math-karts-client-id") ||
+      ("player-" + Date.now() + "-" + Math.floor(Math.random() * 1000000));
+    localStorage.setItem("math-karts-client-id", clientId);
+    let registered = false;
+    let correctButtonIndex = 0;
+    let currentState = null;
+    let waitingForServer = false;
+    let pendingRegistration = null;
+    let eligibleRace = Number(sessionStorage.getItem("math-karts-eligible-race")) || 0;
+
+    const connectionStatus = document.getElementById("connection-status");
+    const teamSelection = document.getElementById("team-selection");
+    const waitingMessage = document.getElementById("waiting-message");
+    const gameArea = document.getElementById("game-area");
+    const serverMessage = document.getElementById("server-message");
+    const nameInput = document.getElementById("student-name");
+    nameInput.value = myName;
+
+    document.getElementById("team-grid").innerHTML = teams.map(team => `
+      <button class="btn-team" style="--team-color:${team.color}" onclick="joinTeam('${team.id}')">
+        <span class="car">🏎️</span><span class="team-title">${team.name}</span>
+        <span class="team-subtitle">${team.subtitle}</span>
+      </button>`).join("");
+
+    socket.on("connect", () => {
+      connectionStatus.textContent = "● Conectado";
+      connectionStatus.style.color = "#49ffb8";
+      document.getElementById("registration-error").textContent = "";
+      if (myTeam && myName) {
+        setTimeout(() => registerPlayer(myTeam, myName, true), 250);
+      }
+    });
+    socket.on("disconnect", () => {
+      registered = false;
+      connectionStatus.textContent = "● Reconectando…";
+      connectionStatus.style.color = "#ff5c8a";
+    });
+    socket.on("connect_error", error => {
+      connectionStatus.textContent = "Error: " + error.message;
+      connectionStatus.style.color = "#ff5c8a";
+    });
+
+    function joinTeam(team) {
+      const name = nameInput.value.trim();
+      if (name.length < 2) {
+        document.getElementById("registration-error").textContent = "Escribe primero tu nombre.";
+        nameInput.focus();
+        return;
+      }
+      registerPlayer(team, name, false);
+    }
+
+    async function registerPlayer(team, name, silent) {
+      const requestedEligibleRace = eligibleRace;
+      pendingRegistration = { team, name, silent };
+      document.getElementById("registration-error").textContent = "";
+
+      // Mostramos la sala de espera inmediatamente, pero mantenemos al
+      // alumno inhabilitado para jugar hasta recibir confirmación del servidor.
+      myTeam = team;
+      myName = name;
+      registered = true;
+      eligibleRace = Number.MAX_SAFE_INTEGER;
+      sessionStorage.setItem("math-karts-team", myTeam);
+      sessionStorage.setItem("math-karts-name", myName);
+      renderState();
+
+      try {
+        const response = await fetch(window.location.origin + "/api/join", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ team, name, clientId })
+        });
+        const result = await response.json();
+        if (!response.ok || !result.ok) throw new Error(result.message || "No se pudo registrar.");
+
+        pendingRegistration = null;
+        myTeam = result.team;
+        myName = result.name;
+        eligibleRace = Number(result.eligibleRace) || 0;
+        registered = true;
+        sessionStorage.setItem("math-karts-team", myTeam);
+        sessionStorage.setItem("math-karts-name", myName);
+        sessionStorage.setItem("math-karts-eligible-race", String(eligibleRace));
+        document.getElementById("registration-error").textContent = "";
+        renderState();
+      } catch (error) {
+        pendingRegistration = null;
+        registered = false;
+        myTeam = "";
+        eligibleRace = 0;
+        sessionStorage.removeItem("math-karts-team");
+        sessionStorage.removeItem("math-karts-eligible-race");
+        document.getElementById("registration-error").textContent = error.message;
+        renderState();
+      }
+    }
+
+    socket.on("registration-result", response => {
+      const request = pendingRegistration;
+      pendingRegistration = null;
+
+      if (!response || !response.ok) {
+        registered = false;
+        myTeam = "";
+        eligibleRace = 0;
+        sessionStorage.removeItem("math-karts-team");
+        sessionStorage.removeItem("math-karts-eligible-race");
+        document.getElementById("registration-error").textContent =
+          response && response.message ? response.message : "El servidor rechazó el registro.";
+        renderState();
+        return;
+      }
+
+      myTeam = response.team;
+      myName = response.name;
+      eligibleRace = Number(response.eligibleRace) || 0;
+      registered = true;
+      sessionStorage.setItem("math-karts-team", myTeam);
+      sessionStorage.setItem("math-karts-name", myName);
+      sessionStorage.setItem("math-karts-eligible-race", String(eligibleRace));
+      document.getElementById("registration-error").textContent = "";
+      renderState();
+    });
+
+    function changeRegistration() {
+      registered = false;
+      myTeam = "";
+      sessionStorage.removeItem("math-karts-team");
+      renderState();
+    }
+
+    function renderState() {
+      if (!registered || !myTeam || !myName) {
+        teamSelection.style.display = "block";
+        waitingMessage.style.display = "none";
+        gameArea.style.display = "none";
+        nameInput.value = myName;
+        return;
+      }
+
+      teamSelection.style.display = "none";
+      const team = teams.find(item => item.id === myTeam);
+      document.documentElement.style.setProperty("--team-color", team.color);
+      document.getElementById("waiting-player").textContent = `${myName} · EQUIPO ${team.name}`;
+      document.getElementById("game-player").textContent = myName;
+
+      const canRace =
+        currentState &&
+        currentState.started &&
+        eligibleRace > 0 &&
+        eligibleRace <= currentState.raceNumber;
+
+      if (canRace) {
+        waitingMessage.style.display = "none";
+        gameArea.style.display = "block";
+        document.getElementById("team-label").textContent = "EQUIPO " + team.name;
+        if (document.getElementById("equation-display").textContent === "...") generateEquation();
+      } else {
+        waitingMessage.style.display = "block";
+        gameArea.style.display = "none";
+      }
+    }
+
+    socket.on("game-state", state => {
+      currentState = state;
+
+      // game-state también funciona como confirmación del registro.
+      if (pendingRegistration && socket.id) {
+        const request = pendingRegistration;
+        const teamState = state[request.team];
+        const confirmedPlayer =
+          teamState &&
+          teamState.players.find(
+            player =>
+              player.id === socket.id ||
+              player.name.toLocaleLowerCase() === request.name.toLocaleLowerCase()
+          );
+        const appearsInTeam = Boolean(confirmedPlayer);
+
+        if (appearsInTeam) {
+          eligibleRace = Number(confirmedPlayer.eligibleRace) || 0;
+          pendingRegistration = null;
+          registered = true;
+          myTeam = request.team;
+          myName = request.name;
+          sessionStorage.setItem("math-karts-team", myTeam);
+          sessionStorage.setItem("math-karts-name", myName);
+          sessionStorage.setItem("math-karts-eligible-race", String(eligibleRace));
+          document.getElementById("registration-error").textContent = "";
+        }
+      }
+
+      renderState();
+    });
+
+    function randomInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function shuffle(values) {
+      return values
+        .map(value => ({ value, order: Math.random() }))
+        .sort((a, b) => a.order - b.order)
+        .map(item => item.value);
+    }
+
+    function generateHierarchyProblem() {
+      const templates = [
+        () => {
+          const a = randomInt(2, 9);
+          const b = randomInt(2, 9);
+          const c = randomInt(2, 9);
+          return {
+            text: `${a} + ${b} × ${c}`,
+            answer: a + b * c
+          };
+        },
+        () => {
+          const a = randomInt(30, 80);
+          const b = randomInt(2, 9);
+          const c = randomInt(2, 9);
+          return {
+            text: `${a} - ${b} × ${c}`,
+            answer: a - b * c
+          };
+        },
+        () => {
+          const divisor = randomInt(2, 9);
+          const quotient = randomInt(2, 9);
+          const dividend = divisor * quotient;
+          const c = randomInt(3, 15);
+          return {
+            text: `${dividend} ÷ ${divisor} + ${c}`,
+            answer: quotient + c
+          };
+        },
+        () => {
+          const a = randomInt(2, 9);
+          const b = randomInt(2, 9);
+          const c = randomInt(2, 9);
+          return {
+            text: `(${a} + ${b}) × ${c}`,
+            answer: (a + b) * c
+          };
+        },
+        () => {
+          const a = randomInt(2, 9);
+          const b = randomInt(2, 9);
+          const c = randomInt(2, 9);
+          return {
+            text: `${a} × (${b} + ${c})`,
+            answer: a * (b + c)
+          };
+        },
+        () => {
+          const divisor = randomInt(2, 6);
+          const inside = randomInt(3, 9);
+          const add = randomInt(2, 8);
+          const dividend = divisor * (inside + add);
+          return {
+            text: `${dividend} ÷ (${inside} + ${add})`,
+            answer: divisor
+          };
+        },
+        () => {
+          const a = randomInt(2, 8);
+          const b = randomInt(2, 6);
+          const c = randomInt(2, 9);
+          const d = randomInt(2, 9);
+          return {
+            text: `${a} × ${b} + ${c} × ${d}`,
+            answer: a * b + c * d
+          };
+        },
+        () => {
+          const a = randomInt(2, 9);
+          const b = randomInt(2, 9);
+          const c = randomInt(2, 9);
+          return {
+            text: `${a} + (${b} × ${c})`,
+            answer: a + b * c
+          };
+        }
+      ];
+
+      return templates[randomInt(0, templates.length - 1)]();
+    }
+
+    function generateEquation() {
+      const problem = generateHierarchyProblem();
+      const correctAnswer = problem.answer;
+      const wrongAnswers = new Set();
+
+      while (wrongAnswers.size < 2) {
+        const offset = randomInt(-12, 12);
+        const candidate = correctAnswer + offset;
+        if (offset !== 0 && candidate >= 0 && candidate !== correctAnswer) {
+          wrongAnswers.add(candidate);
+        }
+      }
+
+      const options = shuffle([correctAnswer, ...wrongAnswers]);
+      correctButtonIndex = options.indexOf(correctAnswer);
+
+      document.getElementById("equation-display").textContent = problem.text;
+      options.forEach((value,index) => document.getElementById(`btn-${index}`).textContent = value);
+    }
+
+    function setButtons(disabled) {
+      document.querySelectorAll(".btn-answer").forEach(button => button.disabled = disabled);
+    }
+
+    function flash(good) {
+      const className = good ? "flash-good" : "flash-bad";
+      document.body.classList.add(className);
+      setTimeout(() => document.body.classList.remove(className), 220);
+    }
+
+    function checkAnswer(index) {
+      if (waitingForServer) return;
+      if (index !== correctButtonIndex) {
+        flash(false);
+        generateEquation();
+        return;
+      }
+      if (!socket.connected) {
+        serverMessage.textContent = "Sin conexión. Espera la reconexión.";
+        return flash(false);
+      }
+      waitingForServer = true;
+      setButtons(true);
+      serverMessage.textContent = "Enviando avance…";
+      fetch(window.location.origin + "/api/move", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ team: myTeam, clientId })
+      }).then(async httpResponse => {
+        const response = await httpResponse.json();
+        if (!httpResponse.ok || !response.ok) throw new Error(response.message || "No se pudo avanzar.");
+        waitingForServer = false;
+        setButtons(false);
+        serverMessage.textContent = `¡Aceleraste! Equipo al ${response.distance}%`;
+        flash(true);
+        generateEquation();
+      }).catch(error => {
+        waitingForServer = false;
+        setButtons(false);
+        serverMessage.textContent = error.message;
+        flash(false);
+      });
+    }
+
+    renderState();
+    socket.connect();
+  </script>
+</body>
+</html>
